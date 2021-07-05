@@ -1,0 +1,7 @@
+{
+  "$schema": "https://aka.ms/azure-quickstart-templates-metadata-schema#",
+  "type": "QuickStart",
+  "itemDisplayName": "Create a Virtual Network with multiple Subnets",
+  "description": "This template allows you to create a Virtual Network with multiple subnets.",
+  "summary": "Create a Virtual Network with multiple Subnets"
+}

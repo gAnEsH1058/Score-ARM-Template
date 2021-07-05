@@ -1,0 +1,1127 @@
+{
+   "$schema":"https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+   "contentVersion":"1.0.0.0",
+   "parameters":{
+      "vnetaddressPrefix":{
+         "type":"string",
+         "defaultValue":"10.199.254.0/24",
+         "metadata":{
+            "description":"The address space for the virtual network"
+         }
+      },
+      "gwsnetaddressPrefix":{
+         "type":"string",
+         "defaultValue":"10.199.254.80/28",
+         "metadata":{
+            "description":"The address space for gateway subnet network"
+         }
+      },
+      "appGatewayPrefix":{
+         "type":"string",
+         "defaultValue":"app-gtw",
+         "metadata":{
+            "description":""
+         }
+      },
+      "websnetaddressPrefix":{
+         "type":"string",
+         "defaultValue":"10.199.254.128/27",
+         "metadata":{
+            "description":"The address space for web subnet network"
+         }
+      },
+      "webPrefix":{
+         "type":"string",
+         "defaultValue":"web",
+         "metadata":{
+            "description":""
+         }
+      },
+      "analyticsPrefix":{
+         "type":"string",
+         "defaultValue":"analytics",
+         "metadata":{
+            "description":""
+         }
+      },
+      "analyticsnetaddressPrefix":{
+         "type":"string",
+         "defaultValue":"10.199.254.192/28",
+         "metadata":{
+            "description":"The address space for management subnet network"
+         }
+      },
+      "bastionsnetaddressPrefix":{
+         "type":"string",
+         "defaultValue":"10.199.254.0/28",
+         "metadata":{
+            "description":"The address space for web subnet network"
+         }
+      },
+       "BastionPrefix":{
+         "type":"string",
+         "defaultValue":"bastion",
+         "metadata":{
+            "description":""
+         }
+      },
+      "sftpsnetaddressPrefix":{
+         "type":"string",
+         "defaultValue":"10.199.254.48/28",
+         "metadata":{
+            "description":"The address space for management subnet network"
+         }
+      },
+       "sftpPrefix":{
+         "type":"string",
+         "defaultValue":"sftp-config",
+         "metadata":{
+            "description":""
+         }
+      },
+      "dataintegrationsnetaddressPrefix":{
+         "type":"string",
+         "defaultValue":"10.199.254.64/28",
+         "metadata":{
+            "description":"The address space for web subnet network"
+         }
+      },
+       "dataIntegrationPrefix":{
+         "type":"string",
+         "defaultValue":"data-integration",
+         "metadata":{
+            "description":""
+         }
+      },
+      "appsnetaddressPrefix":{
+         "type":"string",
+         "defaultValue":"10.199.254.96/27",
+         "metadata":{
+            "description":"The address space for management subnet network"
+         }
+      },
+       "appPrefix":{
+         "type":"string",
+         "defaultValue":"app",
+         "metadata":{
+            "description":""
+         }
+      },
+      "dbsnetaddressPrefix":{
+         "type":"string",
+         "defaultValue":"10.199.254.160/27",
+         "metadata":{
+            "description":"The address space for web subnet network"
+         }
+      },
+       "DBPrefix":{
+         "type":"string",
+         "defaultValue":"db",
+         "metadata":{
+            "description":""
+         }
+      },
+      "iamconfigaddressPrefix":{
+         "type":"string",
+         "defaultValue":"10.199.254.32/28",
+         "metadata":{
+            "description":"The address space for web subnet network"
+         }
+      },
+       "IamConfigPrefix":{
+         "type":"string",
+         "defaultValue":"iam-config",
+         "metadata":{
+            "description":""
+         }
+      },
+      "natgatewayname": {
+        "defaultValue": "AppNatGateway",
+        "type": "String",
+        "metadata": {
+            "description": "Name of the NAT gateway"
+        }
+      },
+       "ConnectBastionIpname": {
+         "defaultValue": "myPublicIP",
+         "type": "String",
+         "metadata": {
+         "description": "Name of the NAT gateway public IP"
+         }
+      },
+      "ClientIpname": {
+         "defaultValue": "myPublicIPVM",
+         "type": "String",
+         "metadata": {
+         "description": "Name of the virtual machine public IP"
+         }
+      },
+      "bastionName": {
+         "defaultValue": "BastionService",
+         "type": "String",
+         "metadata": {
+               "description": "Name of the Bastion Service"
+        }
+      },
+      "publicIpAddressForBastion": {
+         "type": "String",
+         "metadata": {
+         "description": "IP Addresss of the Bastion Service"
+        }
+      },
+       "ddosProtectionPlanEnabled": {
+            "type": "bool"
+      },
+      "applicationGatewayName": {
+            "type": "string"
+      },
+      "tier": {
+            "type": "string"
+      },
+      "skuSize": {
+          "type": "string"
+      },
+      "capacity": {
+          "type": "int",
+          "defaultValue": 2
+      },
+      "publicIpAddressGateway": {
+            "type": "string"
+      },
+      "sku": {
+            "type": "string"
+      },
+      "allocationMethod": {
+          "type": "string"
+      },
+      "publicIpZones": {
+          "type": "array"
+      },
+      "autoScaleMaxCapacity": {
+          "type": "int"
+      }
+   },
+   "variables":{
+      "virtualNetworkName":{
+         "name":"[concat('vnet', resourceGroup().name)]"
+      },
+      "subnetName":{
+         "AppGWSnet":"[concat(parameters('appGatewayPrefix'),'-subnet')]",
+         "AnalyticsSnet":"[concat(parameters('analyticsPrefix'),'-subnet')]",
+         "BastionSnet":"AzureBastionSubnet",
+         "SFTPSnet":"[concat(parameters('sftpPrefix'),'-subnet')]",
+         "dataintegrationSnet":"[concat(parameters('dataIntegrationPrefix'),'-subnet')]",
+         "APPSnet":"[concat(parameters('appPrefix'),'-subnet')]",
+         "DBSnet":"[concat(parameters('DBPrefix'),'-subnet')]",
+         "WebSnet":"[concat(parameters('webPrefix'),'-subnet')]",
+         "IAMConfigSnet":"[concat(parameters('IamConfigPrefix'),'-subnet')]"
+      },
+      "networkSecurityGroupName":{
+         "AppGWnsg":"[concat(parameters('appGatewayPrefix'),'-nsg')]",
+         "Analyticsnsg":"[concat(parameters('analyticsPrefix'),'-nsg')]",
+         "Bastionnsg":"[concat(parameters('BastionPrefix'),'-nsg')]",
+         "SFTPnsg":"[concat(parameters('sftpPrefix'),'-nsg')]",
+         "dataintegrationnsg":"[concat(parameters('dataIntegrationPrefix'),'-nsg')]",
+         "APPnsg":"[concat(parameters('appPrefix'),'-nsg')]",
+         "DBnsg":"[concat(parameters('DBPrefix'),'-nsg')]",
+         "Webnsg":"[concat(parameters('webPrefix'),'-nsg')]",
+         "IAMConfignsg":"[concat(parameters('IamConfigPrefix'),'-nsg')]"
+      },
+      "applicationGatewayId": "[resourceId('Microsoft.Network/applicationGateways', parameters('applicationGatewayName'))]"
+   },
+   "resources":[
+      {
+         "type":"Microsoft.Network/virtualNetworks",
+         "apiVersion":"2018-11-01",
+         "name":"[variables('virtualNetworkName').name]",
+         "location":"[resourceGroup().location]",
+         "dependsOn":[
+            "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').AppGWnsg)]",
+            "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').Analyticsnsg)]",
+            "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').Bastionnsg)]",
+            "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').SFTPnsg)]",
+            "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').dataintegrationnsg)]",
+            "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').APPnsg)]",
+            "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').AppGWnsg)]",
+            "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').webnsg)]"
+         ],
+         "properties":{
+            "addressSpace":{
+               "addressPrefixes":[
+                  "[parameters('vnetaddressPrefix')]"
+               ]
+            },
+            "enableDdosProtection": "[parameters('ddosProtectionPlanEnabled')]",
+            "subnets":[
+               {
+                  "name":"[variables('subnetName').AppGWSnet]",
+                  "properties":{
+                     "addressPrefix":"[parameters('gwsnetaddressPrefix')]",
+                     "networkSecurityGroup":{
+                        "id":"[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').AppGWnsg)]"
+                     }
+                  }
+               },
+               {
+                  "name":"[variables('subnetName').AnalyticsSnet]",
+                  "properties":{
+                     "addressPrefix":"[parameters('analyticsnetaddressPrefix')]",
+                     "networkSecurityGroup":{
+                        "id":"[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').Analyticsnsg)]"
+                     }
+                  }
+               },
+               {
+                  "name":"[variables('subnetName').BastionSnet]",
+                  "properties":{
+                     "addressPrefix":"[parameters('bastionsnetaddressPrefix')]",
+                     "networkSecurityGroup":{
+                        "id":"[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').Bastionnsg)]"
+                     }
+                  }
+               },
+               {
+                  "name":"[variables('subnetName').SFTPSnet]",
+                  "properties":{
+                     "addressPrefix":"[parameters('sftpsnetaddressPrefix')]",
+                     "networkSecurityGroup":{
+                        "id":"[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').SFTPnsg)]"
+                     }
+                  }
+               },
+               {
+                  "name":"[variables('subnetName').dataintegrationSnet]",
+                  "properties":{
+                     "addressPrefix":"[parameters('dataintegrationsnetaddressPrefix')]",
+                     "networkSecurityGroup":{
+                        "id":"[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').dataintegrationnsg)]"
+                     }
+                  }
+               },
+               {
+                  "name":"[variables('subnetName').APPSnet]",
+                  "properties":{
+                     "addressPrefix":"[parameters('appsnetaddressPrefix')]",
+                     "networkSecurityGroup":{
+                        "id":"[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').APPnsg)]"
+                     }
+                  }
+               },
+               {
+                  "name":"[variables('subnetName').DBSnet]",
+                  "properties":{
+                     "addressPrefix":"[parameters('DBsnetaddressPrefix')]",
+                     "networkSecurityGroup":{
+                        "id":"[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').DBnsg)]"
+                     }
+                  }
+               },
+               {
+                  "name":"[variables('subnetName').websnet]",
+                  "properties":{
+                     "addressPrefix":"[parameters('websnetaddressPrefix')]",
+                     "networkSecurityGroup":{
+                        "id":"[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').webnsg)]"
+                     },
+                     "natGateway": {
+                         "id": "[resourceId('Microsoft.Network/natGateways', parameters('natgatewayname'))]"
+                     }
+                  }
+               },
+               {
+                  "name":"[variables('subnetName').IAMConfigSnet]",
+                  "properties":{
+                     "addressPrefix":"[parameters('iamconfigaddressPrefix')]"
+                     // "networkSecurityGroup":{
+                     //    "id":"[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').webnsg)]"
+                     // }
+                  }
+               }
+            ]
+            
+         }
+          
+         
+      },
+      {
+         "apiVersion":"2018-11-01",
+         "type":"Microsoft.Network/networkSecurityGroups",
+         "name":"[variables('networkSecurityGroupName').AppGWnsg]",
+         "location":"[resourceGroup().location]",
+         "properties":{
+            "securityRules":[
+               {
+                  "name":"Allow_FE",
+                  "properties":{
+                     "description":"Allow FE Subnet",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"443",
+                     "sourceAddressPrefix":"[parameters('gwsnetaddressPrefix')]",
+                     "destinationAddressPrefix":"*",
+                     "access":"Allow",
+                     "priority":100,
+                     "direction":"Inbound"
+                  }
+               },
+               {
+                  "name":"Block_RDP_Internet",
+                  "properties":{
+                     "description":"Block RDP",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"3389",
+                     "sourceAddressPrefix":"Internet",
+                     "destinationAddressPrefix":"*",
+                     "access":"Deny",
+                     "priority":101,
+                     "direction":"Inbound"
+                  }
+               },
+               {
+                  "name":"Block_Internet_Outbound",
+                  "properties":{
+                     "description":"Block Internet",
+                     "protocol":"*",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"*",
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"Internet",
+                     "access":"Deny",
+                     "priority":200,
+                     "direction":"Outbound"
+                  }
+               }
+            ]
+         }
+      },
+      {
+         "apiVersion":"2017-10-01",
+         "type":"Microsoft.Network/networkSecurityGroups",
+         "name":"[variables('networkSecurityGroupName').webnsg]",
+         "location":"[resourceGroup().location]",
+         "properties":{
+            "securityRules":[
+               {
+                  "name":"Allow_GW",
+                  "properties":{
+                     "description":"Allow GW Subnet",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"443",
+                     "sourceAddressPrefix":"[parameters('gwsnetaddressPrefix')]",
+                     "destinationAddressPrefix":"*",
+                     "access":"Allow",
+                     "priority":100,
+                     "direction":"Inbound"
+                  }
+               },
+               {
+                  "name":"Block_RDP_Internet",
+                  "properties":{
+                     "description":"Block RDP",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"3389",
+                     "sourceAddressPrefix":"Internet",
+                     "destinationAddressPrefix":"*",
+                     "access":"Deny",
+                     "priority":101,
+                     "direction":"Inbound"
+                  }
+               },
+               {
+                  "name":"Allow_outbound_web",
+                  "properties":{
+                     "description":"Allow_outbound_web",
+                     "protocol":"TCP",
+                     "sourcePortRange":"*",
+                     "destinationPortRanges": ["443","543","643","743"],
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"[parameters('websnetaddressPrefix')]",
+                     "access":"Allow",
+                     "priority":100,
+                     "direction":"Outbound"
+                  }
+               },
+               {
+                  "name":"Block_Internet_Outbound",
+                  "properties":{
+                     "description":"Block Internet",
+                     "protocol":"*",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"*",
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"Internet",
+                     "access":"Deny",
+                     "priority":200,
+                     "direction":"Outbound"
+                  }
+               }
+            ]
+         }
+      },
+      {
+         "apiVersion":"2018-11-01",
+         "type":"Microsoft.Network/networkSecurityGroups",
+         "name":"[variables('networkSecurityGroupName').Analyticsnsg]",
+         "location":"[resourceGroup().location]",
+         "properties":{
+            "securityRules":[
+               {
+                  "name":"Allow_GW",
+                  "properties":{
+                     "description":"Allow GW Subnet",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"443",
+                     "sourceAddressPrefix":"[parameters('gwsnetaddressPrefix')]",
+                     "destinationAddressPrefix":"*",
+                     "access":"Allow",
+                     "priority":100,
+                     "direction":"Inbound"
+                  }
+               },
+               {
+                  "name":"Block_RDP_Internet",
+                  "properties":{
+                     "description":"Block RDP",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"3389",
+                     "sourceAddressPrefix":"Internet",
+                     "destinationAddressPrefix":"*",
+                     "access":"Deny",
+                     "priority":101,
+                     "direction":"Inbound"
+                  }
+               },
+               {
+                  "name":"Block_Internet_Outbound",
+                  "properties":{
+                     "description":"Block Internet",
+                     "protocol":"*",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"*",
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"Internet",
+                     "access":"Deny",
+                     "priority":200,
+                     "direction":"Outbound"
+                  }
+               }
+            ]
+         }
+      },
+      {
+         "apiVersion":"2018-11-01",
+         "type":"Microsoft.Network/networkSecurityGroups",
+         "name":"[variables('networkSecurityGroupName').DBnsg]",
+         "location":"[resourceGroup().location]",
+         "properties":{
+            "securityRules":[
+               {
+                  "name":"Allow_Analytics",
+                  "properties":{
+                     "description":"Allow Analytics Subnet",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"1443",
+                     "sourceAddressPrefix":"[parameters('analyticsnetaddressPrefix')]",
+                     "destinationAddressPrefix":"*",
+                     "access":"Allow",
+                     "priority":100,
+                     "direction":"Inbound"
+                  }
+               },
+               {
+                  "name":"allow_redirect_inbound",
+                  "properties":{
+                     "description":"Allow inbound redirect traffic to Managed Instance inside the virtual network",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"11000-11999",
+                     "sourceAddressPrefix":"VirtualNetwork",
+                     "destinationAddressPrefix":"*",
+                     "access":"Allow",
+                     "priority":1100,
+                     "direction":"Inbound"
+                  }
+               },
+               {
+                  "name":"allow_geodr_inbound",
+                  "properties":{
+                     "description":"Allow inbound geodr traffic inside the virtual network",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"5022",
+                     "sourceAddressPrefix":"VirtualNetwork",
+                     "destinationAddressPrefix":"*",
+                     "access":"Allow",
+                     "priority":1200,
+                     "direction":"Inbound"
+                  }
+               },
+               {
+                  "name":"deny_all_inbound",
+                  "properties":{
+                     "description":"Deny all other inbound traffic",
+                     "protocol":"*",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"*",
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"*",
+                     "access":"Deny",
+                     "priority":4096,
+                     "direction":"Inbound"
+                  }
+               },
+               {
+                  "name":"allow_linkedserver_outbound",
+                  "properties":{
+                     "description":"Allow outbound linkedserver traffic inside the virtual network",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"1433",
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"VirtualNetwork",
+                     "access":"Allow",
+                     "priority":1000,
+                     "direction":"Outbound"
+                  }
+               },
+               {
+                  "name":"allow_redirect_outbound",
+                  "properties":{
+                     "description":"Allow outbound redirect traffic to Managed Instance inside the virtual network",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"11000-11999",
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"VirtualNetwork",
+                     "access":"Allow",
+                     "priority":1100,
+                     "direction":"Outbound"
+                  }
+               },
+               {
+                  "name":"allow_geodr_outbound",
+                  "properties":{
+                     "description":"Allow outbound geodr traffic inside the virtual network",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"5022",
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"VirtualNetwork",
+                     "access":"Allow",
+                     "priority":1200,
+                     "direction":"Outbound"
+                  }
+               },
+               {
+                  "name":"deny_all_outbound",
+                  "properties":{
+                     "description":"Deny all other outbound traffic",
+                     "protocol":"*",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"*",
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"*",
+                     "access":"Deny",
+                     "priority":4096,
+                     "direction":"Outbound"
+                  }
+               },
+               {
+                  "name":"Block_RDP_Internet",
+                  "properties":{
+                     "description":"Block RDP",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"3389",
+                     "sourceAddressPrefix":"Internet",
+                     "destinationAddressPrefix":"*",
+                     "access":"Deny",
+                     "priority":101,
+                     "direction":"Inbound"
+                  }
+               },
+               {
+                  "name":"Block_Internet_Outbound",
+                  "properties":{
+                     "description":"Block Internet",
+                     "protocol":"*",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"*",
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"Internet",
+                     "access":"Deny",
+                     "priority":200,
+                     "direction":"Outbound"
+                  }
+               }
+            ]
+         }
+      },
+      {
+         "apiVersion":"2018-11-01",
+         "type":"Microsoft.Network/networkSecurityGroups",
+         "name":"[variables('networkSecurityGroupName').dataintegrationnsg]",
+         "location":"[resourceGroup().location]",
+         "properties":{
+            "securityRules":[
+               {
+                  "name":"Allow_Outbound_SQL",
+                  "properties":{
+                     "description":"Allow SQL Subnet",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"1443",
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"[parameters('dbsnetaddressPrefix')]",
+                     "access":"Allow",
+                     "priority":100,
+                     "direction":"outbound"
+                  }
+               },
+               {
+                  "name":"Allow_Outbound_app",
+                  "properties":{
+                     "description":"Allow app Subnet",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"443",
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"[parameters('appsnetaddressPrefix')]",
+                     "access":"Allow",
+                     "priority":101,
+                     "direction":"outbound"
+                  }
+               },
+               {
+                  "name":"Allow_SFTP_outbound",
+                  "properties":{
+                     "description":"Allow SFTP Subnet",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"2222",
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"[parameters('sftpsnetaddressPrefix')]",
+                     "access":"Allow",
+                     "priority":102,
+                     "direction":"outbound"
+                  }
+               },
+               {
+                  "name":"Block_RDP_Internet",
+                  "properties":{
+                     "description":"Block RDP",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"3389",
+                     "sourceAddressPrefix":"Internet",
+                     "destinationAddressPrefix":"*",
+                     "access":"Deny",
+                     "priority":110,
+                     "direction":"Inbound"
+                  }
+               },
+               {
+                  "name":"Block_Internet_Outbound",
+                  "properties":{
+                     "description":"Block Internet",
+                     "protocol":"*",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"*",
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"Internet",
+                     "access":"Deny",
+                     "priority":200,
+                     "direction":"Outbound"
+                  }
+               }
+            ]
+         }
+      },
+      {
+         "apiVersion":"2018-11-01",
+         "type":"Microsoft.Network/networkSecurityGroups",
+         "name":"[variables('networkSecurityGroupName').SFTPnsg]",
+         "location":"[resourceGroup().location]",
+         "properties":{
+            "securityRules":[
+               {
+                  "name":"Allow_dat_integration",
+                  "properties":{
+                     "description":"Allow Data Integration Subnet",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"2222",
+                     "sourceAddressPrefix":"[parameters('dataintegrationsnetaddressPrefix')]",
+                     "destinationAddressPrefix":"*",
+                     "access":"Allow",
+                     "priority":100,
+                     "direction":"Inbound"
+                  }
+               },
+               {
+                  "name":"Allow_outbound_AFTP",
+                  "properties":{
+                     "description":"Allow_outbound_AFTP",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"2222",
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"*",
+                     "access":"Allow",
+                     "priority":101,
+                     "direction":"Outbound"
+                  }
+               },
+               {
+                  "name":"Block_RDP_Internet",
+                  "properties":{
+                     "description":"Block RDP",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"3389",
+                     "sourceAddressPrefix":"Internet",
+                     "destinationAddressPrefix":"*",
+                     "access":"Deny",
+                     "priority":102,
+                     "direction":"Inbound"
+                  }
+               },
+               {
+                  "name":"Block_Internet_Outbound",
+                  "properties":{
+                     "description":"Block Internet",
+                     "protocol":"*",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"*",
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"Internet",
+                     "access":"Deny",
+                     "priority":200,
+                     "direction":"Outbound"
+                  }
+               }
+            ]
+         }
+      },
+      {
+         "apiVersion":"2017-10-01",
+         "type":"Microsoft.Network/networkSecurityGroups",
+         "name":"[variables('networkSecurityGroupName').APPnsg]",
+         "location":"[resourceGroup().location]",
+         "properties":{
+            "securityRules":[
+               {
+                  "name":"Allow_data_integration",
+                  "properties":{
+                     "description":"Allow_data_integration",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"443",
+                     "sourceAddressPrefix":"[parameters('dataintegrationsnetaddressPrefix')]",
+                     "destinationAddressPrefix":"*",
+                     "access":"Allow",
+                     "priority":100,
+                     "direction":"Inbound"
+                  }
+               },
+               {
+                  "name":"Allow_Web_subnet",
+                  "properties":{
+                     "description":"Allow_Web_subnet",
+                     "protocol":"Tcp",
+                     "sourcePortRanges":["443","543","643","743"],
+                     "destinationPortRange":"*",
+                     "sourceAddressPrefix":"[parameters('websnetaddressPrefix')]",
+                     "destinationAddressPrefix":"*",
+                     "access":"Allow",
+                     "priority":101,
+                     "direction":"Inbound"
+                  }
+               },
+               {
+                  "name":"Block_RDP_Internet",
+                  "properties":{
+                     "description":"Block RDP",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"3389",
+                     "sourceAddressPrefix":"Internet",
+                     "destinationAddressPrefix":"*",
+                     "access":"Deny",
+                     "priority":110,
+                     "direction":"Inbound"
+                  }
+               },
+               {
+                  "name":"Allow_Outbound_DB",
+                  "properties":{
+                     "description":"Allow_Outbound_DB",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"1433",
+                     "destinationPortRange":"*",
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"[parameters('dbsnetaddressPrefix')]",
+                     "access":"Allow",
+                     "priority":102,
+                     "direction":"Outbound"
+                  }
+               },
+               {
+                  "name":"Allow_Outbound_AppGW",
+                  "properties":{
+                     "description":"Allow_Outbound_AppGW",
+                     "protocol":"*",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"*",
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"Internet",
+                     "access":"Allow",
+                     "priority":103,
+                     "direction":"Outbound"
+                  }
+               },
+               {
+                  "name":"Block_Internet_Outbound",
+                  "properties":{
+                     "description":"Block Internet",
+                     "protocol":"*",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"*",
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"Internet",
+                     "access":"Deny",
+                     "priority":200,
+                     "direction":"Outbound"
+                  }
+               }
+            ]
+         }
+      },
+      {
+         "apiVersion":"2018-11-01",
+         "type":"Microsoft.Network/networkSecurityGroups",
+         "name":"[variables('networkSecurityGroupName').Bastionnsg]",
+         "location":"[resourceGroup().location]",
+         "properties":{
+            "securityRules":[
+               {
+                  "name":"Allow_FE",
+                  "properties":{
+                     "description":"Allow FE Subnet",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"443",
+                     "sourceAddressPrefix":"Internet",
+                     "destinationAddressPrefix":"*",
+                     "access":"Allow",
+                     "priority":100,
+                     "direction":"Inbound"
+                  }
+               },
+               {
+                  "name":"Block_RDP_Internet",
+                  "properties":{
+                     "description":"Block RDP",
+                     "protocol":"Tcp",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"3389",
+                     "sourceAddressPrefix":"Internet",
+                     "destinationAddressPrefix":"*",
+                     "access":"Deny",
+                     "priority":101,
+                     "direction":"Inbound"
+                  }
+               },
+               {
+                  "name":"Block_Internet_Outbound",
+                  "properties":{
+                     "description":"Block Internet",
+                     "protocol":"*",
+                     "sourcePortRange":"*",
+                     "destinationPortRange":"*",
+                     "sourceAddressPrefix":"*",
+                     "destinationAddressPrefix":"Internet",
+                     "access":"Deny",
+                     "priority":200,
+                     "direction":"Outbound"
+                  }
+               }
+            ]
+         }
+      },
+      {
+        "type": "Microsoft.Network/natGateways",
+        "apiVersion": "2020-05-01",
+        "name": "[parameters('natgatewayname')]",
+        "location": "[resourceGroup().location]",
+        "sku": {
+            "name": "Standard"
+        },
+        "properties": {
+            "idleTimeoutInMinutes": 4
+        }
+      },
+      {
+          "type": "Microsoft.Network/publicIpAddresses",
+          "apiVersion": "2020-05-01",
+          "name": "[parameters('publicIpAddressForBastion')]",
+          "location":"[resourceGroup().location]",
+          "sku": {
+              "name": "Standard"
+          },
+          "properties": {
+              "publicIPAllocationMethod": "Static"
+          }
+      },
+      {
+          "type": "Microsoft.Network/bastionHosts",
+          "apiVersion": "2019-04-01",
+          "name": "[parameters('bastionName')]",
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+              "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]",
+              "[resourceId(resourceGroup().name, 'Microsoft.Network/publicIpAddresses', parameters('publicIpAddressForBastion'))]"
+          ],
+          "properties": {
+              "ipConfigurations": [
+                  {
+                      "name": "IpConf",
+                      "properties": {
+                          "subnet": {
+                              "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), 'AzureBastionSubnet')]"
+                          },
+                          "publicIPAddress": {
+                              "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/publicIpAddresses', parameters('publicIpAddressForBastion'))]"
+                          }
+                      }
+                  }
+              ]
+          }
+      },
+      {
+            "name": "[parameters('applicationGatewayName')]",
+            "type": "Microsoft.Network/applicationGateways",
+            "apiVersion": "2019-09-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
+                "[concat('Microsoft.Network/publicIPAddresses/', parameters('publicIpAddressGateway'))]"
+            ],
+            "tags": {},
+            "properties": {
+                "sku": {
+                    "name": "[parameters('skuSize')]",
+                    "tier": "[parameters('tier')]"
+                },
+                "gatewayIPConfigurations": [
+                    {
+                        "name": "appGatewayIpConfig",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('subnetName').AppGWSnet]"
+                            }
+                        }
+                    }
+                ],
+                "frontendIPConfigurations": [
+                    {
+                        "name": "appGwPublicFrontendIp"
+                        // "properties": {
+                        //     "PublicIPAddress": {
+                        //       //   "id": "[]"
+                        //     }
+                        // }
+                    }
+                ],
+                "frontendPorts": [
+                    {
+                        "name": "port_80",
+                        "properties": {
+                            "Port": 80
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "mybackenpool",
+                        "properties": {
+                            "backendAddresses": []
+                        }
+                    }
+                ],
+                "backendHttpSettingsCollection": [
+                    {
+                        "name": "incomingpublichttp",
+                        "properties": {
+                            "Port": 80,
+                            "Protocol": "Http",
+                            "cookieBasedAffinity": "Disabled",
+                            "requestTimeout": 20
+                        }
+                    }
+                ],
+                "httpListeners": [
+                    {
+                        "name": "incomingpublic",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[concat(variables('applicationGatewayId'), '/frontendIPConfigurations/appGwPublicFrontendIp')]"
+                            },
+                            "frontendPort": {
+                                "id": "[concat(variables('applicationGatewayId'), '/frontendPorts/port_80')]"
+                            },
+                            "protocol": "Http",
+                            "sslCertificate": null
+                        }
+                    }
+                ],
+                "requestRoutingRules": [
+                    {
+                        "Name": "incomingpublic",
+                        "properties": {
+                            "RuleType": "Basic",
+                            "httpListener": {
+                                "id": "[concat(variables('applicationGatewayId'), '/httpListeners/incomingpublic')]"
+                            },
+                            "backendAddressPool": {
+                                "id": "[concat(variables('applicationGatewayId'), '/backendAddressPools/mybackenpool')]"
+                            },
+                            "backendHttpSettings": {
+                                "id": "[concat(variables('applicationGatewayId'), '/backendHttpSettingsCollection/incomingpublichttp')]"
+                            }
+                        }
+                    }
+                ],
+                "enableHttp2": false,
+                "sslCertificates": [],
+                "probes": [],
+                "autoscaleConfiguration": {
+                    "minCapacity": "[parameters('capacity')]",
+                    "maxCapacity": "[parameters('autoScaleMaxCapacity')]"
+                }
+            }
+        },
+        {
+            "apiVersion": "2019-02-01",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[parameters('publicIpAddressGateway')]",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "[parameters('sku')]"
+            },
+            "zones": "[parameters('publicIpZones')]",
+            "properties": {
+                "publicIPAllocationMethod": "[parameters('allocationMethod')]"
+            }
+        }
+   ],
+   "outputs":{
+     
+   }
+}

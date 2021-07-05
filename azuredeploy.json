@@ -1,0 +1,251 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "vnetName": {
+      "type": "string",
+      "defaultValue": "[concat('vnet', resourceGroup().name)]",
+      "metadata": {
+        "description": "VNet name"
+      }
+    },
+    "AppGWSnetName": {
+      "type": "string",
+      "defaultValue": "[concat('app-gtw-subnet-', resourceGroup().name)]",
+      "metadata": {
+        "description": "app-gtw-Subnet"
+      }
+    },
+    "AnalyticsSnetName": {
+      "type": "string",
+      "defaultValue": "[concat('analytics-subnet-', resourceGroup().name)]",
+      "metadata": {
+        "description": "analytics-Subnet"
+      }
+    },
+    "BastionSnetName": {
+      "type": "string",
+      "defaultValue": "[concat('bastion-subnet–', resourceGroup().name)]",
+      "metadata": {
+        "description": "bastion-Subnet"
+      }
+    },
+    "SFTPSnetName": {
+      "type": "string",
+      "defaultValue": "[concat('sftp-config-subnet-', resourceGroup().name)]",
+      "metadata": {
+        "description": "sftp-config-Subnet"
+      }
+    },
+    "dataintegrationSnetName": {
+      "type": "string",
+      "defaultValue": "[concat('data-integration-subnet-', resourceGroup().name)]",
+      "metadata": {
+        "description": "data-integration-Subnet"
+      }
+    },
+    "APPSnetName": {
+      "type": "string",
+      "defaultValue": "[concat('app-subnet-', resourceGroup().name)]",
+      "metadata": {
+        "description": "app-Subnet"
+      }
+    },
+    "SQLSnetName": {
+      "type": "string",
+      "defaultValue": "[concat('db-subnet-', resourceGroup().name)]",
+      "metadata": {
+        "description": "db-Subnet"
+      }
+    },
+    "WebSnetName": {
+      "type": "string",
+      "defaultValue": "[concat('web-subnet-', resourceGroup().name)]",
+      "metadata": {
+        "description": "web-Subnet"
+      }
+    },
+    
+    "IAMConfigSnetName": {
+      "type": "string",
+      "defaultValue": "[concat('iam-config-subnet–', resourceGroup().name)]",
+      "metadata": {
+        "description": "iam-config-Subnet"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources."
+      }
+    }
+  },
+  "variables": {
+    "sqlServerName": "[concat('sqlserver', uniqueString(resourceGroup().id))]",
+    "databaseName": "[concat(variables('sqlServerName'),'/sample-db')]",
+    "privateEndpointName": "myPrivateEndpoint",
+    "privateDnsZoneName": "[concat('privatelink', environment().suffixes.sqlServerHostname)]",
+    "pvtendpointdnsgroupname": "[concat(variables('privateEndpointName'),'/mydnsgroupname')]",
+    "vmName": "[take(concat('myVm', uniqueString(resourceGroup().id)),15)]",
+    "publicIpAddressName": "[concat(variables('vmName'), 'PublicIP' )]",
+    "networkInterfaceName": "[concat(variables('vmName'),'NetInt')]",
+    "osDiskType": "Standard_LRS",
+    "templatelink": "https://raw.githubusercontent.com/sam-cogan/Demos/master/DemoExamples/newStorageAccount.json"
+  },
+  "resources": [
+    // {
+    //   "comments": "VPN Gateway 1- deployed in location 1",
+    //   "type": "Microsoft.Network/virtualNetworkGateways",
+    //   "apiVersion": "2020-08-01",
+    //   "name": "[variables('gateway1Name')]",
+    //   "location": "[variables('location1')]",
+    //   "dependsOn": [
+    //     "[resourceId('Microsoft.Network/publicIPAddresses', variables('gateway1PublicIP1Name'))]",
+    //     "[resourceId('Microsoft.Network/publicIPAddresses', variables('gateway1PublicIP2Name'))]",
+    //     "[resourceId('Microsoft.Network/virtualNetworks', variables('vNet1Name'))]"
+    //   ],
+    //   "properties": {
+    //     "ipConfigurations": [
+    //       {
+    //         "properties": {
+    //           "privateIPAllocationMethod": "Dynamic",
+    //           "subnet": {
+    //             "id": "[variables('gateway1SubnetRef')]"
+    //           },
+    //           "publicIPAddress": {
+    //             "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('gateway1PublicIP1Name'))]"
+    //           }
+    //         },
+    //         "name": "vnetGateway1Config1"
+    //       },
+    //       {
+    //         "properties": {
+    //           "privateIPAllocationMethod": "Dynamic",
+    //           "subnet": {
+    //             "id": "[variables('gateway1SubnetRef')]"
+    //           },
+    //           "publicIPAddress": {
+    //             "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('gateway1PublicIP2Name'))]"
+    //           }
+    //         },
+    //         "name": "vnetGateway1Config2"
+    //       }
+    //     ],
+    //     "sku": {
+    //       "name": "[parameters('gatewaySku')]",
+    //       "tier": "[parameters('gatewaySku')]"
+    //     },
+    //     "gatewayType": "Vpn",
+    //     "vpnType": "RouteBased",
+    //     "enableBgp": true,
+    //     "activeActive": true,
+    //     "vpnGatewayGeneration": "[variables('vpnGatewayGeneration')]",
+    //     "bgpSettings": {
+    //       "asn": "[variables('asnGtw1')]"
+    //     }
+    //   }
+    // }
+    {
+      "apiVersion": "2015-01-01",
+      "name": "nestedTemplate",
+      "type": "Microsoft.Resources/deployments",
+      "properties": {
+          "mode": "incremental",
+          "templateLink": {
+              "uri": "[variables('templatelink')]",
+              "contentVersion": "1.0.0.0"
+          },
+          "parameters": {
+              "sqlAdministratorLogin": {
+                "value": "GEN-UNIQUE"
+              },
+              "sqlAdministratorLoginPassword": {
+                "value": "GEN-PASSWORD"
+              },
+              "vmAdminUsername": {
+                "value": "GEN-UNIQUE"
+              },
+              "vmAdminPassword": {
+                "value": "GEN-PASSWORD"
+              }
+          }
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2020-06-01",
+      "name": "[variables('networkInterfaceName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        // "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpAddressName'))]",
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+      ],
+      "tags": {
+        "displayName": "[variables('networkInterfaceName')]"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipConfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpAddressName'))]"
+              },
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), variables('subnet1Name'))]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2020-06-01",
+      "name": "[variables('vmName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceName'))]"
+      ],
+      "tags": {
+        "displayName": "[variables('vmName')]"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('VmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[variables('vmName')]",
+          "adminUsername": "[parameters('vmAdminUsername')]",
+          "adminPassword": "[parameters('vmAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2019-Datacenter",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "[concat(variables('vmName'),'OsDisk')]",
+            "caching": "ReadWrite",
+            "createOption": "FromImage",
+            "managedDisk": {
+              "storageAccountType": "[variables('osDiskType')]"
+            },
+            "diskSizeGB": 128
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceName'))]"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

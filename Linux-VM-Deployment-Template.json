@@ -1,0 +1,367 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.1.0.0",
+  "parameters": {
+    "VMResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource group name in which the VM is to be deployed."
+      }
+    },
+    "storageAccountType": {
+      "type": "string",
+      "allowedValues": [
+        "Standard_LRS",
+        "Premium_LRS"
+      ],
+      "metadata": {
+        "description": "Provide the name of the storage account type which will be used for deploying the VM"
+      }
+    },
+    "LinuxOSVersion": {
+      "type": "string",
+      "defaultValue": "",
+      "allowedValues": [
+        "Red Hat Enterprise Linux#6.7",
+        "Red Hat Enterprise Linux#6.8",
+        "Red Hat Enterprise Linux#7.2",
+        "SAP HANA Red Hat Enterprise Linux#7.2",
+        "Red Hat Enterprise Linux#7.3",
+        "SUSE Linux Enterprise Server#11-SP4",
+        "SUSE Linux Enterprise Server#12-SP1",
+        "SUSE Linux Enterprise Server#12-SP2",
+        "Ubuntu Server#12.04.2-LTS",
+        "Ubuntu Server#12.04.3-LTS",
+        "Ubuntu Server#12.04.4-LTS",
+        "Ubuntu Server#12.04.5-LTS",
+        "Ubuntu Server#12.10",
+        "Ubuntu Server#14.04.0-LTS",
+        "Ubuntu Server#14.04.1-LTS",
+        "Ubuntu Server#14.04.2-LTS",
+        "Ubuntu Server#14.04.3-LTS",
+        "Ubuntu Server#14.04.4-LTS",
+        "Ubuntu Server#14.04.5-LTS",
+        "Ubuntu Server#14.10",
+        "Ubuntu Server#15.04",
+        "Ubuntu Server#15.10",
+        "Ubuntu Server#16.04-LTS",
+        "Ubuntu Server#16.04.0-LTS",
+        "Ubuntu Server#16.10"
+      ],
+      "metadata": {
+        "description": "Linux Server operating system that is to be deployed."
+      }
+    },
+    "virtualMachineSize": {
+      "type": "string",
+      "metadata": {
+        "description": "Specify the virtual machine size."
+      }
+    },
+    "virtualMachineName": {
+      "type": "string",
+      "metadata": {
+        "description": "Enter prefix of the virtual machine name, an iteration number will be added!"
+      }
+    },
+    "adminUsername": {
+      "type": "string",
+      "metadata": {
+        "description": "Enter the name of the local administrator, 'administrator' is not allowed."
+      }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Enter a strong password for the local administrator, do not provide well known passwords like 'Pa$$w0rd'."
+      }
+    },
+    "vNetResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource group name that contains the networking resources."
+      }
+    },
+    "virtualNetworkName": {
+      "type": "string",
+      "metadata": {
+        "description": "Specify the vNET to which the virtual machine needs to be connected."
+      }
+    },
+    "subnetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Specify the subnet to which the VM is to be connected."
+      }
+    },
+    "publicIpAddressType": {
+      "type": "string",
+      "defaultValue": "Dynamic",
+      "allowedValues": [
+        "dynamic",
+        "static"
+      ],
+      "metadata": {
+        "description": "Specify wether the public IP address is to be Dynamic or Static."
+      }
+    },
+    "bootDiagnostics": {
+      "type": "bool",
+      "defaultValue": true,
+      "allowedValues": [
+        true,
+        false
+      ],
+      "metadata": {
+        "description": "Specify wether boot diagnostics is to be enabled."
+      }
+    },
+    "diagnosticsStorageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Specify the name of a storage account with standard storage."
+      }
+    },
+    "AvailabilitySetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Specify the name of Availability Set"
+      }
+    },
+    "CustomOSID": {
+      "type": "string",
+      "metadata": {
+        "description": "Specify the ID of Custom Image ImageReference"
+      }
+    },
+    "DeploymentType": {
+      "allowedValues": [
+        "CustomOSNoAvailabilityNo",
+        "CustomOSNoAvailabilityYes",
+        "CustomOSYesAvailabilityNo",
+        "CustomOSYesAvailabilityYes"
+      ],
+      "type": "String"
+    }
+  },
+  "variables": {
+    "vnetId": "[resourceId(parameters('vNetResourceGroup'),'Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
+    "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('subnetName'))]",
+    "location": "[resourceGroup().location]",
+    "LinuxVersion": "[split(parameters('LinuxOSVersion'),'#')]",
+    "OperatingSystemName": "[replace(replace(replace(replace(string(take(variables('LinuxVersion'),1)),' ',''),'\"',''),'[',''),']','')]",
+    "OperatingSystemVersion": "[replace(replace(replace(string(skip(variables('LinuxVersion'),1)),'\"',''),'[',''),']','')]",
+    "RedHatEnterpriseLinux": {
+      "publisher": "RedHat",
+      "offer": "RHEL",
+      "sku": "[variables('OperatingSystemVersion')]",
+      "version": "latest"
+    },
+    "SAPHANARedHatEnterpriseLinux": {
+      "publisher": "RedHat",
+      "offer": "RHEL-SAP-HANA",
+      "sku": "[variables('OperatingSystemVersion')]",
+      "version": "latest"
+    },
+    "SUSELinuxEnterpriseServer": {
+      "publisher": "SUSE",
+      "offer": "SLES",
+      "sku": "[variables('OperatingSystemVersion')]",
+      "version": "latest"
+    },
+    "UbuntuServer": {
+      "publisher": "Canonical",
+      "offer": "UbuntuServer",
+      "sku": "[variables('OperatingSystemVersion')]",
+      "version": "latest"
+    },
+    "imageReference": "[variables(variables('OperatingSystemName'))]",
+    "DeploymentCollection": {
+      "CustomOSNoAvailabilityNo": {
+        "osProfile": {
+          "computerName": "[parameters('virtualMachineName')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[parameters('virtualMachineSize')]"
+        },
+        "storageProfile": {
+          "imageReference": "[variables('imageReference')]",
+          "osDisk": {
+            "name": "[parameters('virtualMachineName')]",
+            "createOption": "fromImage",
+            "managedDisk": {
+              "storageAccountType": "[parameters('storageAccountType')]"
+            }
+          },
+          "dataDisks": []
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('virtualMachineName'),'nic0'))]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "[parameters('bootDiagnostics')]",
+            "storageUri": "[concat('https://', parameters('diagnosticsStorageAccountName'),'.blob.core.windows.net')]"
+          }
+        }
+      },
+      "CustomOSNoAvailabilityYes": {
+        "osProfile": {
+          "computerName": "[parameters('virtualMachineName')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[parameters('virtualMachineSize')]"
+        },
+        "storageProfile": {
+          "imageReference": "[variables('imageReference')]",
+          "osDisk": {
+            "name": "[parameters('virtualMachineName')]",
+            "createOption": "fromImage",
+            "managedDisk": {
+              "storageAccountType": "[parameters('storageAccountType')]"
+            }
+          },
+          "dataDisks": []
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('virtualMachineName'),'nic0'))]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "[parameters('bootDiagnostics')]",
+            "storageUri": "[concat('https://', parameters('diagnosticsStorageAccountName'),'.blob.core.windows.net')]"
+          }
+        },
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', parameters('AvailabilitySetName'))]"
+        }
+      },
+      "CustomOSYesAvailabilityNo": {
+        "osProfile": {
+          "computerName": "[parameters('virtualMachineName')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[parameters('virtualMachineSize')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "id": "[parameters('CustomOSID')]"
+          },
+          "osDisk": {
+            "name": "[parameters('virtualMachineName')]",
+            "createOption": "fromImage",
+            "managedDisk": {
+              "storageAccountType": "[parameters('storageAccountType')]"
+            }
+          },
+          "dataDisks": []
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('virtualMachineName'),'nic0'))]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "[parameters('bootDiagnostics')]",
+            "storageUri": "[concat('https://', parameters('diagnosticsStorageAccountName'),'.blob.core.windows.net')]"
+          }
+        }
+      },
+      "CustomOSYesAvailabilityYes": {
+        "osProfile": {
+          "computerName": "[parameters('virtualMachineName')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[parameters('virtualMachineSize')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "id": "[parameters('CustomOSID')]"
+          },
+          "osDisk": {
+            "name": "[parameters('virtualMachineName')]",
+            "createOption": "fromImage",
+            "managedDisk": {
+              "storageAccountType": "[parameters('storageAccountType')]"
+            }
+          },
+          "dataDisks": []
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('virtualMachineName'),'nic0'))]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "[parameters('bootDiagnostics')]",
+            "storageUri": "[concat('https://', parameters('diagnosticsStorageAccountName'),'.blob.core.windows.net')]"
+          }
+        },
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', parameters('AvailabilitySetName'))]"
+        }
+      }
+    },
+    "VmProperties": "[variables('DeploymentCollection')[parameters('DeploymentType')]]"
+  },
+  "resources": [
+    {
+      "apiVersion": "2016-04-30-preview",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[parameters('virtualMachineName')]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkInterfaces/', concat(parameters('virtualMachineName'),'nic0'))]"
+      ],
+      "properties": "[variables('VmProperties')]"
+    },
+    {
+      "name": "[concat(parameters('virtualMachineName'),'nic0')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2016-09-01",
+      "location": "[variables('location')]",
+      "dependsOn": [],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "subnet": {
+                "id": "[variables('subnetRef')]"
+              },
+              "privateIPAllocationMethod": "Dynamic"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "adminUsername": {
+      "type": "string",
+      "value": "[parameters('adminUsername')]"
+    }
+  }
+}
