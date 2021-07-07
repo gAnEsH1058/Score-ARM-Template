@@ -1,0 +1,224 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "defaultValue":"[resourceGroup().location]"
+        },
+        "storageAccountName":{
+            "type": "string",
+            "defaultValue":"scoreplussa"
+        },
+        "virtualNetworkName":{
+            "type": "string",
+            "defaultValue":"vnet"
+        },
+         "vmConfiguration":{
+             "type": "array",
+            "defaultValue":[
+            {
+            "vm_Name": "web",
+            "virtualMachineSize":"Standard_D4s_v4",
+            "adminUsername":"Admin1234",
+            "adminPassword":"Admin@123445",
+            "subnetName":"web-subnet",
+            "networkInterfaceName":"web",
+            "networkSecurityGroupName":"[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', 'web-nsg')]",
+            "osDiskType":"StandardSSD_LRS",
+            "publisher":"MicrosoftWindowsServer",
+            "offer":"WindowsServer",
+            "sku":"2016-Datacenter",
+            "version":"latest",
+            "NumberOfDisk":2,
+            "DataDisk1sku": "StandardSSD_LRS",
+            "DataDisk1SizeGB": 128,
+            "DataDisk2sku": "StandardSSD_LRS",
+            "DataDisk2SizeGB": 256
+            },
+            {
+            "vm_Name": "app",
+            "virtualMachineSize":"Standard_D4s_v4",
+            "adminUsername":"Admin1234",
+            "adminPassword":"Admin@123445",
+            "subnetName":"app-subnet",
+            "networkInterfaceName":"app",
+            "networkSecurityGroupName":"[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', 'web-nsg')]",
+            "osDiskType":"StandardSSD_LRS",
+            "diskSizeGB":"1023",
+            "publisher":"MicrosoftWindowsServer",
+            "offer":"WindowsServer",
+            "sku":"2016-Datacenter",
+            "version":"latest",
+            "NumberOfDisk":2,
+            "DataDisk1sku": "StandardSSD_LRS",
+            "DataDisk1SizeGB": 128,
+            "DataDisk2sku": "StandardSSD_LRS",
+            "DataDisk2SizeGB": 256     
+            }
+            ]
+        }
+    },
+    "variables": {        
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-06-01",
+            "name": "[parameters('storageAccountName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "Standard_LRS"
+            },
+            "kind": "Storage"
+        },
+        {
+            "name": "[concat(parameters('vmConfiguration')[copyIndex()].vm_Name,'_DataDisk_0')]",
+            "type": "Microsoft.Compute/disks",
+            "apiVersion": "2019-07-01",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name":"[parameters('vmConfiguration')[copyIndex()].DataDisk1sku]"
+            },
+            "properties": {
+                "diskSizeGB": "[parameters('vmConfiguration')[copyIndex()].DataDisk1SizeGB]",
+                "creationData": {
+                    "createOption": "empty"
+                }
+            },"copy": {
+                "name": "disk1COpy",
+                "count": "[length(parameters('vmConfiguration'))]"
+            }   
+        },
+          {
+            "name": "[concat(parameters('vmConfiguration')[copyIndex()].vm_Name,'_DataDisk_1')]",
+            "type": "Microsoft.Compute/disks",
+            "apiVersion": "2019-07-01",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name":"[parameters('vmConfiguration')[copyIndex()].DataDisk2sku]"
+            },
+            "properties": {
+                "diskSizeGB": "[parameters('vmConfiguration')[copyIndex()].DataDisk2SizeGB]",
+                "creationData": {
+                    "createOption": "empty"
+                }
+            },"copy": {
+                "name": "disk1COpy",
+                "count": "[length(parameters('vmConfiguration'))]"
+            }   
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2020-04-01",
+            "name": "[concat(parameters('vmConfiguration')[copyIndex()].networkInterfaceName,'-nic')]",
+            "location": "[resourceGroup().location]",
+            // "dependsOn": ["[concat('Microsoft.Network/', concat(parameters('dnsLabelPrefix'),copyIndex(1)))]"],
+            "properties": {
+                "ipConfigurations": [{
+                    "name": "[concat('ipconfig',parameters('vmConfiguration')[copyIndex()].vm_Name)]",
+                    "properties": {
+                        "privateIPAllocationMethod": "Dynamic",
+                        "subnet": {
+                            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets',parameters('virtualNetworkName'),parameters('vmConfiguration')[copyIndex()].subnetName)]"
+                        }
+                    }
+                }]
+            },
+             "copy": {
+                "name": "nicCopy",
+                "count": "[length(parameters('vmConfiguration'))]"
+            }
+           
+        }, 
+        {
+            "apiVersion": "2019-07-01",
+            "copy": {
+                "name": "nodeCopy",
+                "count": "[length(parameters('vmConfiguration'))]"
+            },
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[concat(parameters('vmConfiguration')[copyIndex()].vm_Name,'-vm')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+             "[resourceId('Microsoft.Storage/storageAccounts',parameters('storageAccountName'))]",
+             "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('vmConfiguration')[copyIndex()].networkInterfaceName,'-nic'))]",
+             "[resourceId('Microsoft.Compute/disks',concat(parameters('vmConfiguration')[copyIndex()].vm_Name,'_DataDisk_0'))]",
+             "[resourceId('Microsoft.Compute/disks',concat(parameters('vmConfiguration')[copyIndex()].vm_Name,'_DataDisk_1'))]"
+             ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmConfiguration')[copyIndex()].virtualMachineSize]"
+                },
+                "osProfile": {
+                    "computerName": "[parameters('vmConfiguration')[copyIndex()].vm_Name]",
+                    "adminUsername": "[parameters('vmConfiguration')[copyIndex()].adminUsername]",
+                    "adminPassword": "[parameters('vmConfiguration')[copyIndex()].adminPassword]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[parameters('vmConfiguration')[copyIndex()].publisher]",
+                        "offer": "[parameters('vmConfiguration')[copyIndex()].offer]",
+                        "sku": "[parameters('vmConfiguration')[copyIndex()].sku]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage",
+                        
+                        "managedDisk": {
+                            "storageAccountType": "[parameters('vmConfiguration')[copyIndex()].osDiskType]"
+                        }
+                    },
+                    "dataDisks": [
+                    {
+                        "name": "[concat(parameters('vmConfiguration')[copyIndex()].vm_Name,'_DataDisk_0')]",
+                        "diskSizeGB": "[parameters('vmConfiguration')[copyIndex()].DataDisk1SizeGB]",
+                        "caching": "None",
+                        "lun": 0,
+                        "createOption": "attach",
+                        "managedDisk": 
+                        {
+                            "id": "[resourceId('Microsoft.Compute/disks', concat(parameters('vmConfiguration')[copyIndex()].vm_Name,'_DataDisk_0'))]",
+                            "storageAccountType": "StandardSSD_LRS"
+                        },
+                        "writeAcceleratorEnabled": false
+                    },
+                           {
+                        "name": "[concat(parameters('vmConfiguration')[copyIndex()].vm_Name,'_DataDisk_1')]",
+                        "diskSizeGB": "[parameters('vmConfiguration')[copyIndex()].DataDisk2SizeGB]",
+                        "caching": "None",
+                        "lun": 1,
+                        "createOption": "attach",
+                        "managedDisk": 
+                        {
+                            "id": "[resourceId('Microsoft.Compute/disks', concat(parameters('vmConfiguration')[copyIndex()].vm_Name,'_DataDisk_1'))]",
+                            "storageAccountType": "StandardSSD_LRS"
+                        },
+                        "writeAcceleratorEnabled": false
+                    }
+                    ]
+                    
+                
+                },
+                "networkProfile": {
+                    "networkInterfaces": [{
+                        "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('vmConfiguration')[copyIndex()].networkInterfaceName,'-nic'))]"
+                    }]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', parameters('storageAccountName')), '2015-06-15').primaryEndpoints.blob]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+        // "adminUsername": {
+        //     "type": "string",
+        //     "value": "[parameters('adminUsername')]"
+        // }
+    }
+}

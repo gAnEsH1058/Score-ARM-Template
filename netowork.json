@@ -2,6 +2,10 @@
    "$schema":"https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
    "contentVersion":"1.0.0.0",
    "parameters":{
+      "virtualNetworkName":{
+          "type": "string",
+          "defaultValue":"vnet"
+      },
       "vnetaddressPrefix":{
          "type":"string",
          "defaultValue":"10.199.254.0/24",
@@ -165,46 +169,51 @@
       },
       "publicIpAddressForBastion": {
          "type": "String",
+         "defaultValue":"BastionServicePublicIP",
          "metadata": {
          "description": "IP Addresss of the Bastion Service"
         }
       },
-       "ddosProtectionPlanEnabled": {
-            "type": "bool"
-      },
+      // "ddosProtectionPlanName": {
+      //    "type": "string",
+      //    "metadata": {
+      //    "description": "Specify a DDoS protection plan name."
+      //    }
+      // },
+      //  "ddosProtectionPlanEnabled": {
+      //    "type": "bool",
+      //    "defaultValue": false 
+      // },
       "applicationGatewayName": {
-            "type": "string"
+         "type": "string",
+         "defaultValue":"App-gw"
       },
-      "tier": {
-            "type": "string"
+      "AppGatewayTier": {
+         "type": "string",
+         "defaultValue":"WAF"
       },
-      "skuSize": {
-          "type": "string"
+      "AppGatewaySkuSize": {
+         "type": "string",
+         "defaultValue":"WAF_Medium"
       },
-      "capacity": {
-          "type": "int",
-          "defaultValue": 2
-      },
+      // "AppGatewayAutoScaleMinCapacity": {
+      //    "type": "int",
+      //    "defaultValue": 2
+      // },
       "publicIpAddressGateway": {
-            "type": "string"
+         "type": "string",
+         "defaultValue":"AppGatewayPublicIP"
       },
-      "sku": {
-            "type": "string"
-      },
-      "allocationMethod": {
-          "type": "string"
-      },
-      "publicIpZones": {
-          "type": "array"
-      },
-      "autoScaleMaxCapacity": {
-          "type": "int"
-      }
+      // "AppGatewayAutoScaleMaxCapacity": {
+      //    "type": "int",
+      //    "defaultValue":10
+      // },
+      "AppGatewayCapacity":{
+         "type": "int",
+         "defaultValue":2
+     }
    },
    "variables":{
-      "virtualNetworkName":{
-         "name":"[concat('vnet', resourceGroup().name)]"
-      },
       "subnetName":{
          "AppGWSnet":"[concat(parameters('appGatewayPrefix'),'-subnet')]",
          "AnalyticsSnet":"[concat(parameters('analyticsPrefix'),'-subnet')]",
@@ -233,7 +242,7 @@
       {
          "type":"Microsoft.Network/virtualNetworks",
          "apiVersion":"2018-11-01",
-         "name":"[variables('virtualNetworkName').name]",
+         "name":"[parameters('virtualNetworkName')]",
          "location":"[resourceGroup().location]",
          "dependsOn":[
             "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').AppGWnsg)]",
@@ -244,6 +253,7 @@
             "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').APPnsg)]",
             "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').AppGWnsg)]",
             "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').webnsg)]"
+            // "[resourceId('Microsoft.Network/ddosProtectionPlans', parameters('ddosProtectionPlanName'))]"
          ],
          "properties":{
             "addressSpace":{
@@ -251,7 +261,10 @@
                   "[parameters('vnetaddressPrefix')]"
                ]
             },
-            "enableDdosProtection": "[parameters('ddosProtectionPlanEnabled')]",
+            // "enableDdosProtection": "[parameters('ddosProtectionPlanEnabled')]",
+            //  "ddosProtectionPlan": {
+            //    "id": "[resourceId('Microsoft.Network/ddosProtectionPlans', parameters('ddosProtectionPlanName'))]"
+            // },
             "subnets":[
                {
                   "name":"[variables('subnetName').AppGWSnet]",
@@ -274,10 +287,10 @@
                {
                   "name":"[variables('subnetName').BastionSnet]",
                   "properties":{
-                     "addressPrefix":"[parameters('bastionsnetaddressPrefix')]",
-                     "networkSecurityGroup":{
-                        "id":"[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').Bastionnsg)]"
-                     }
+                     "addressPrefix":"[parameters('bastionsnetaddressPrefix')]"
+                     // "networkSecurityGroup":{
+                     //    "id":"[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName').Bastionnsg)]"
+                     // }
                   }
                },
                {
@@ -979,14 +992,20 @@
               "publicIPAllocationMethod": "Static"
           }
       },
+      // {
+      //    "type": "Microsoft.Network/ddosProtectionPlans",
+      //    "apiVersion": "2020-11-01",
+      //    "name": "[parameters('ddosProtectionPlanName')]",
+      //    "location": "[resourceGroup().location]"
+      // },
       {
           "type": "Microsoft.Network/bastionHosts",
           "apiVersion": "2019-04-01",
           "name": "[parameters('bastionName')]",
           "location": "[resourceGroup().location]",
           "dependsOn": [
-              "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]",
-              "[resourceId(resourceGroup().name, 'Microsoft.Network/publicIpAddresses', parameters('publicIpAddressForBastion'))]"
+              "[resourceId( 'Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
+              "[resourceId( 'Microsoft.Network/publicIpAddresses', parameters('publicIpAddressForBastion'))]"
           ],
           "properties": {
               "ipConfigurations": [
@@ -994,10 +1013,10 @@
                       "name": "IpConf",
                       "properties": {
                           "subnet": {
-                              "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), 'AzureBastionSubnet')]"
+                              "id": "[resourceId( 'Microsoft.Network/virtualNetworks/subnets',parameters('virtualNetworkName'),'AzureBastionSubnet')]"
                           },
                           "publicIPAddress": {
-                              "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/publicIpAddresses', parameters('publicIpAddressForBastion'))]"
+                              "id": "[resourceId( 'Microsoft.Network/publicIpAddresses', parameters('publicIpAddressForBastion'))]"
                           }
                       }
                   }
@@ -1010,33 +1029,34 @@
             "apiVersion": "2019-09-01",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-                "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
+                "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'))]",
                 "[concat('Microsoft.Network/publicIPAddresses/', parameters('publicIpAddressGateway'))]"
             ],
             "tags": {},
             "properties": {
                 "sku": {
-                    "name": "[parameters('skuSize')]",
-                    "tier": "[parameters('tier')]"
+                    "name": "[parameters('AppGatewaySkuSize')]",
+                    "tier": "[parameters('AppGatewayTier')]",
+                    "capacity":"[parameters('AppGatewayCapacity')]"
                 },
                 "gatewayIPConfigurations": [
                     {
                         "name": "appGatewayIpConfig",
                         "properties": {
                             "subnet": {
-                                "id": "[variables('subnetName').AppGWSnet]"
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets',parameters('virtualNetworkName'),variables('subnetName').AppGWSnet)]"
                             }
                         }
                     }
                 ],
                 "frontendIPConfigurations": [
                     {
-                        "name": "appGwPublicFrontendIp"
-                        // "properties": {
-                        //     "PublicIPAddress": {
-                        //       //   "id": "[]"
-                        //     }
-                        // }
+                        "name": "appGwPublicFrontendIp",
+                        "properties": {
+                            "PublicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIpAddressGateway'))]"
+                            }
+                        }
                     }
                 ],
                 "frontendPorts": [
@@ -1101,9 +1121,11 @@
                 "enableHttp2": false,
                 "sslCertificates": [],
                 "probes": [],
-                "autoscaleConfiguration": {
-                    "minCapacity": "[parameters('capacity')]",
-                    "maxCapacity": "[parameters('autoScaleMaxCapacity')]"
+               "webApplicationFirewallConfiguration": {
+                    "enabled": true,
+                    "firewallMode": "Detection",
+                    "ruleSetType": "OWASP",
+                    "ruleSetVersion": "3.0"
                 }
             }
         },
@@ -1113,11 +1135,10 @@
             "name": "[parameters('publicIpAddressGateway')]",
             "location": "[resourceGroup().location]",
             "sku": {
-                "name": "[parameters('sku')]"
+                "name": "Basic"
             },
-            "zones": "[parameters('publicIpZones')]",
             "properties": {
-                "publicIPAllocationMethod": "[parameters('allocationMethod')]"
+                "publicIPAllocationMethod": "Dynamic"
             }
         }
    ],
